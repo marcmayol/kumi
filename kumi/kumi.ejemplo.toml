@@ -25,6 +25,12 @@ por_tarea_usd = 15                 # una tarea con sus vueltas del supervisor y 
 por_dia_usd = 60                   # todos los agentes en un día
 # Solo cuenta lo que el motor declara: Claude Code da el coste de cada sesión; otros motores, no siempre.
 
+[recursos]                         # las tareas van a la vez; antes de arrancar un agente se mira si cabe
+max_paralelo = 4                   # tareas de la recepción a la vez (cada una en su proceso)
+min_disco_gb = 15                  # libres donde están las obras; si no, el agente espera
+min_sistema_gb = 8                 # libres en el disco del sistema
+min_ram_gb = 6                     # RAM libre (cada agente usa 1-2 GB y puede compilar)
+
 [memoria]
 motor = "omoikane"                 # o "ninguna": sin perfiles por proyecto ni cola de decisiones
 

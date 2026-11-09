@@ -11,7 +11,17 @@ tarea → central (encargado + planificador) → factorías → factorías de te
 
 Cada tarea trabaja en su propio worktree de git, así que tu copia del repo no se toca hasta que el cambio está aprobado.
 
-> **Estado: alfa (0.1).** Se usa a diario en una instalación con Windows, Claude Code y Android, webs, Rust y Python. Linux y macOS deberían funcionar, pero aún no están probados. Los textos de los agentes (oficios, modos) están en español.
+**Todo va en paralelo.** Las tareas corren a la vez, cada una en su proceso, y las cadenas de test de una tarea también. Las factorías de una misma ruta siguen en orden, porque cada una trabaja sobre lo que dejó la anterior. Antes de arrancar un agente, Kumi mira el disco y la RAM libres, y si el equipo va lleno, espera:
+
+```toml
+[recursos]
+max_paralelo = 4       # tareas a la vez
+min_disco_gb = 15      # libres donde están las obras
+min_sistema_gb = 8     # libres en el disco del sistema
+min_ram_gb = 6
+```
+
+> **Estado: alfa (0.2).** Se usa a diario en una instalación con Windows, Claude Code y Android, webs, Rust y Python. Linux y macOS deberían funcionar, pero aún no están probados. Los textos de los agentes (oficios, modos) están en español.
 
 ## Instalar
 
@@ -103,7 +113,7 @@ Por dónde entra el trabajo y por dónde habla Kumi: avisos, preguntas y aprobac
 
 ### Notion
 
-`kumi recepcion` hace una pasada por dos bases de Notion: una de tareas y otra de ideas. Prográmala cada hora con el programador de tu sistema (cron, launchd o el Programador de tareas de Windows). Las tareas necesitan:
+`kumi recepcion` hace una pasada por dos bases de Notion, una de tareas y otra de ideas. Lanza todas las que tocan y termina enseguida. Prográmala cada hora con el programador de tu sistema (cron, launchd o el Programador de tareas de Windows). Las tareas necesitan:
 
 - un campo `Estado` de tipo status, con «Sin empezar», «En progreso» y «Listo»;
 - un campo `humano` de tipo select. Solo se hacen las que tienen `no`. Las demás se anotan en el registro como saltadas, con el motivo.

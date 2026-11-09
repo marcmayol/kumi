@@ -82,6 +82,11 @@ class Config:
     # Topes de gasto en dólares (0 = sin tope). Al pasarlos, la tarea se para y se avisa al humano.
     gasto_tarea: float = 0.0
     gasto_dia: float = 0.0
+    # Recursos: cuántas tareas a la vez y el sitio mínimo para arrancar otro agente (si no, espera).
+    max_paralelo: int = 4
+    min_disco_gb: float = 15.0         # libres donde están las obras
+    min_sistema_gb: float = 8.0        # libres en el disco del sistema (temporales, configuración de los agentes)
+    min_ram_gb: float = 6.0
     fichero: Path | None = None
 
     def elecciones(self, papel: str, nombre: str | None = None, perfil: dict | None = None) -> list[dict]:
@@ -136,6 +141,11 @@ def cargar(fichero: Path | None = None) -> Config:
     g = d.get("gasto", {})
     c.gasto_tarea = float(g.get("por_tarea_usd", c.gasto_tarea))
     c.gasto_dia = float(g.get("por_dia_usd", c.gasto_dia))
+    rc = d.get("recursos", {})
+    c.max_paralelo = int(rc.get("max_paralelo", c.max_paralelo))
+    c.min_disco_gb = float(rc.get("min_disco_gb", c.min_disco_gb))
+    c.min_sistema_gb = float(rc.get("min_sistema_gb", c.min_sistema_gb))
+    c.min_ram_gb = float(rc.get("min_ram_gb", c.min_ram_gb))
     c.memoria = d.get("memoria", {}).get("motor", c.memoria)
     for k, v in d.get("papeles", {}).items():
         c.papeles[k] = _lista(v)

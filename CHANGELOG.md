@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (2026-11-09)
+
+- Everything runs in parallel: `kumi recepcion` launches every task and idea that is due, each in its own process, up to `[recursos] max_paralelo`, and returns at once; the next pass knows which ones are still running.
+- The test chains of a task run at the same time (each one still waits for its slot, e.g. a single emulator).
+- Before starting an agent or launching a task, Kumi checks free disk and RAM (`[recursos] min_disco_gb`, `min_sistema_gb`, `min_ram_gb`) and waits until there is room.
+- `kumi recepcion` logs the tasks it skips because of the `humano` field, once per edit, with the reason.
+
 ## 0.1.0 (2026-11-09)
 
 First public release.

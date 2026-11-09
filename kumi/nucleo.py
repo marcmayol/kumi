@@ -28,7 +28,9 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 import tomllib
 from pathlib import Path
 
@@ -81,13 +83,47 @@ def git(*args: str, cwd: Path, ok: bool = False) -> str | None:
 
 def log(t: dict, texto: str) -> None:
     linea = f"{ahora()} {texto}"
-    t.setdefault("historia", []).append(linea)
-    guardar(t)
+    with CANDADO:
+        t.setdefault("historia", []).append(linea)
+        guardar(t)
     print(f"[kumi {t['id']}] {texto}", file=sys.stderr, flush=True)
 
 
+# Las cadenas de test de una tarea corren en hilos a la vez y comparten el dict de la tarea.
+CANDADO = threading.RLock()
+
+
 def guardar(t: dict) -> None:
-    escribir(TAREAS / t["id"] / "tarea.json", t)
+    with CANDADO:
+        escribir(TAREAS / t["id"] / "tarea.json", t)
+
+
+def sitio_libre() -> str | None:
+    """None si al equipo le queda sitio para un agente más (disco y RAM de [recursos]); si no, qué falta.
+    Cada agente es una sesión de 1-2 GB de RAM que además puede compilar."""
+    falta = []
+    sistema = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
+    for ruta, minimo, nombre in ((DATOS if DATOS.exists() else Path.home(), CFG.min_disco_gb, "disco de las obras"),
+                                 (sistema, CFG.min_sistema_gb, "disco del sistema")):
+        libre = shutil.disk_usage(ruta).free / 2**30
+        if libre < minimo:
+            falta.append(f"{nombre}: {libre:.0f} GB libres (mínimo {minimo:g})")
+    ram = psutil.virtual_memory().available / 2**30
+    if ram < CFG.min_ram_gb:
+        falta.append(f"RAM: {ram:.1f} GB libres (mínimo {CFG.min_ram_gb:g})")
+    return "; ".join(falta) or None
+
+
+def esperar_sitio(t: dict, que: str) -> None:
+    """Espera a que haya sitio en el equipo; lo apunta una vez en la tarea."""
+    avisado = False
+    while motivo := sitio_libre():
+        if not avisado:
+            log(t, f"{que}: espera, no hay sitio en el equipo ({motivo})")
+            avisado = True
+        time.sleep(30)
+    if avisado:
+        log(t, f"{que}: ya hay sitio, arranca")
 
 
 def cargar(tid: str) -> dict:
@@ -782,9 +818,13 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
             avisar(t, "Tarea parada por el tope de gasto", tope + ". Súbelo en [gasto] de kumi.toml y reanuda con "
                    f"`kumi reanudar {t['id']}`.")
         return {"estado": "bloqueado", "resumen": tope, "hallazgos": [], "bloqueantes": 1}
-    paso = f"{len(t.get('pasos', [])) + 1:02d}-{papel}-{nombre}"
-    carpeta = TAREAS / t["id"] / paso
-    carpeta.mkdir(parents=True)
+    esperar_sitio(t, f"{papel} {nombre}")
+    with CANDADO:
+        (TAREAS / t["id"]).mkdir(parents=True, exist_ok=True)
+        n = max(len(t.get("pasos", [])), len(list((TAREAS / t["id"]).glob("[0-9][0-9]-*")))) + 1
+        paso = f"{n:02d}-{papel}-{nombre}"
+        carpeta = TAREAS / t["id"] / paso
+        carpeta.mkdir(parents=True)
     prompt = humanizar_texto(receta) + "\n" + contexto(t, papel, nombre, carpeta, extra + brain_para(t, papel, nombre))
     env = {**os.environ, "OMOIKANE_AUTHOR": f"kumi-{papel}-{nombre}", "KUMI_TAREA": t["id"], "PYTHONIOENCODING": "utf-8"}
     perfil = perfil_leer(Path(t["raiz"])) if t.get("raiz") else None
@@ -820,6 +860,7 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
                "hallazgos": [], "bloqueantes": 0}
     if papel == "factoria" and res.get("tipo_cambio") == "funcionalidad":
         t["funcionalidad_nueva"] = True      # sube el minor al publicar; los arreglos, el parche
+    CANDADO.acquire()
     t.setdefault("pasos", []).append({"paso": paso, "papel": papel, "nombre": nombre, "inicio": inicio,
                                       "fin": ahora(), "codigo": ej.codigo, "usd": ej.usd, "turnos": ej.turnos,
                                       "motor": ej.eleccion.get("motor"), "modelo": ej.eleccion.get("modelo"),
@@ -827,6 +868,7 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
                                       "estado": res.get("estado"), "resumen": res.get("resumen", "")})
     t["usd"] = round(sum(p.get("usd") or 0 for p in t["pasos"]), 2)
     sumar_gasto(ej.usd)
+    CANDADO.release()
     log(t, f"{papel} {nombre} [{motores.describir(ej.eleccion)}]: {res.get('estado')} · {res.get('resumen', '')}")
     return res
 
@@ -1133,16 +1175,27 @@ def recorrer(t: dict) -> dict:
         if saltados:
             log(t, "tests que no tocan para este cambio: " + "; ".join(f"{n} ({m})" for n, m in saltados.items()))
             t["tests_saltados"] = saltados
-        for nombre in [n for n in d["tests"] if n not in saltados]:
+        def una_cadena(nombre: str) -> tuple[str, dict]:
             c = tests_reg[nombre]
             plaza_t = coger_plaza(f"test-{nombre}", c.get("cupo", 1), t["id"])
             try:
-                res = lanzar_agente(t, c.get("papel", "test"), nombre, receta_de(catalogo("tests", "comun.md"), Path(c["carpeta"]) / "oficio.md"),
-                                    extra=f"- Lo que dejó producción para probar: carpetas de los pasos anteriores en `{TAREAS / t['id']}`\n",
-                                    necesita=c.get("necesita", []))
+                return nombre, lanzar_agente(
+                    t, c.get("papel", "test"), nombre, receta_de(catalogo("tests", "comun.md"), Path(c["carpeta"]) / "oficio.md"),
+                    extra=f"- Lo que dejó producción para probar: carpetas de los pasos anteriores en `{TAREAS / t['id']}`\n"
+                          "- Las demás cadenas de test de esta tarea corren a la vez que tú sobre la misma obra: no toques el "
+                          "código ni el árbol de git, y lo que crees (servidores, puertos, carpetas) que sea tuyo.\n",
+                    necesita=c.get("necesita", []))
+            except Exception as ex:  # noqa: BLE001
+                return nombre, {"estado": "fallo", "resumen": f"la cadena se cayó: {ex}", "hallazgos": [], "bloqueantes": 0}
             finally:
                 plaza_t.unlink(missing_ok=True)
-            resultados.append((nombre, res))
+
+        # Las cadenas de test no dependen unas de otras: van a la vez (cada una con su plaza y su cupo).
+        lista = [n for n in d["tests"] if n not in saltados]
+        if lista:
+            log(t, f"cadenas de test a la vez: {', '.join(lista)}")
+            with ThreadPoolExecutor(max_workers=len(lista)) as hilos:
+                resultados = list(hilos.map(una_cadena, lista))
     finally:
         plaza_p.unlink(missing_ok=True)
 

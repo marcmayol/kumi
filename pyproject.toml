@@ -1,6 +1,6 @@
 [project]
 name = "kumi"
-version = "0.1.0"
+version = "0.2.0"
 description = "A software factory for AI coding agents: every task goes through a build chain, test chains, a risk gate and a human approval, with any engine and model per role."
 readme = "README.md"
 license = "MIT"

@@ -78,6 +78,33 @@ def estado() -> dict:
         return {"tareas": {}, "ideas": {}}
 
 
+class bloqueo:
+    """Cerrojo entre procesos para leer-modificar-escribir el estado de la recepción."""
+    def __enter__(self):
+        import time
+        DATOS.mkdir(parents=True, exist_ok=True)
+        self.f = DATOS / "recepcion.lock"
+        for _ in range(600):
+            try:
+                os.mkdir(self.f)
+                return self
+            except FileExistsError:
+                try:
+                    if datetime.now().timestamp() - self.f.stat().st_mtime > 120:
+                        os.rmdir(self.f)             # cerrojo de un proceso que murió a medias
+                        continue
+                except OSError:
+                    pass
+                time.sleep(0.2)
+        raise TimeoutError("estado de la recepción bloqueado")
+
+    def __exit__(self, *a):
+        try:
+            os.rmdir(self.f)
+        except OSError:
+            pass
+
+
 def guardar(e: dict) -> None:
     DATOS.mkdir(parents=True, exist_ok=True)
     ESTADO.write_text(json.dumps(e, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -174,6 +201,11 @@ def ultima_respuesta(cuerpo: str) -> str | None:
 
 
 # --- Elegir ----------------------------------------------------------------------------
+
+def elegibles(todas: list[dict], intentos: dict, en_curso: dict) -> list[dict]:
+    """Todas las que tocan ahora, en orden (las ideas por prioridad), sin las que ya están en marcha."""
+    return [t for t in todas if t["id"] not in en_curso and elegir([t], intentos)]
+
 
 def elegir(todas: list[dict], intentos: dict) -> dict | None:
     for t in todas:
@@ -363,10 +395,14 @@ def atender(item: dict, e: dict, simular: bool) -> None:
             log(f"→ {valor}: {resumen[:300]}")
         registro["resultado"] = valor
     registro["editada"] = _notion("GET", f"pages/{item['id']}")["last_edited_time"]
-    intentos[item["id"]] = registro
-    if registro.get("resultado") == "Listo":
-        intentos.pop(item["id"], None)
-    guardar(e)
+    with bloqueo():                          # otros procesos escriben a la vez: solo se toca su entrada
+        e = estado()
+        intentos = e.setdefault(item["tipo"], {})
+        intentos[item["id"]] = registro
+        if registro.get("resultado") == "Listo":
+            intentos.pop(item["id"], None)
+        e.setdefault("en_curso", {}).pop(item["id"], None)
+        guardar(e)
 
 
 def anotar_saltadas(tareas: list[dict], e: dict, simular: bool) -> None:
@@ -385,25 +421,85 @@ def anotar_saltadas(tareas: list[dict], e: dict, simular: bool) -> None:
         vistas[t["id"]] = t["editada"]
     for i in set(vistas) - pendientes:
         del vistas[i]                          # ya no está pendiente (hecha, borrada o pasada a «no»)
-    if not simular:
-        guardar(e)
+
+
+def en_marcha(e: dict) -> dict:
+    """Las que siguen corriendo. Las que murieron sin acabar cuentan como intento (no se reintentan hasta
+    dentro de 24 h o hasta que el humano edite la página)."""
+    import psutil
+    vivas = {}
+    for i, x in e.get("en_curso", {}).items():
+        if psutil.pid_exists(x.get("pid", -1)):
+            vivas[i] = x
+        else:
+            log(f"se cayó sin terminar: {x.get('titulo', i)[:90]}")
+            previa = e.setdefault(x["tipo"], {}).get(i, {})
+            e[x["tipo"]][i] = {**previa, "cuando": ahora().isoformat(), "editada": x.get("editada", previa.get("editada", "")),
+                               "titulo": x.get("titulo", ""), "resultado": "caida"}
+    e["en_curso"] = vivas
+    return vivas
+
+
+def lanzar(item: dict) -> int:
+    """Un proceso aparte para la tarea, que sigue aunque la pasada (y el programador del sistema) termine."""
+    orden = [sys.executable, "-m", "kumi", "recepcion", "--una", item["tipo"], item["id"]]
+    kw = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+    if sys.platform != "win32":
+        return subprocess.Popen(orden, start_new_session=True, **kw).pid
+    banderas = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+                | 0x01000000)                # CREATE_BREAKAWAY_FROM_JOB: que no muera con el trabajo del Programador
+    try:
+        return subprocess.Popen(orden, creationflags=banderas, **kw).pid
+    except OSError:
+        return subprocess.Popen(orden, creationflags=banderas & ~0x01000000, **kw).pid
+
+
+def una(tipo: str, pid: str) -> None:
+    """Atiende una sola tarea o idea (el proceso que lanza la pasada)."""
+    item = next((t for t in leer_bd(BD_TAREAS if tipo == "tareas" else BD_IDEAS, tipo) if t["id"] == pid), None)
+    try:
+        if item:
+            atender(item, estado(), False)
+    finally:
+        with bloqueo():
+            e = estado()
+            e.setdefault("en_curso", {}).pop(pid, None)
+            guardar(e)
 
 
 def pasada(simular: bool) -> None:
+    """Lanza a la vez todas las tareas e ideas que tocan (hasta [recursos] max_paralelo, y mientras quede sitio
+    en el equipo), cada una en su proceso, y termina enseguida."""
     if not BD_TAREAS and not BD_IDEAS:
         raise SystemExit("No hay canal Notion en kumi.toml ([canales.notion] tareas = … / ideas = …)")
-    e = estado()
     tareas = leer_bd(BD_TAREAS, "tareas") if BD_TAREAS else []
     limpiar(tareas, simular)
     ideas = leer_bd(BD_IDEAS, "ideas") if BD_IDEAS else []
-    anotar_saltadas(tareas, e, simular)
-    hubo = False
-    for todas, clave in ((tareas, "tareas"), (ideas, "ideas")):
-        item = elegir(todas, e.get(clave, {}))
-        if item:
-            hubo = True
-            atender(item, e, simular)
-    if not hubo:
+    with bloqueo():
+        e = estado()
+        anotar_saltadas(tareas, e, simular)
+        vivas = en_marcha(e)
+        ya_iban = len(vivas)
+        libres = max(CFG.max_paralelo - ya_iban, 0)
+        nuevas = [x for todas, clave in ((tareas, "tareas"), (ideas, "ideas"))
+                  for x in elegibles(todas, e.get(clave, {}), vivas)][:libres]
+        for item in nuevas:
+            motivo = kumi.sitio_libre()
+            if motivo:
+                log(f"no lanzo más: no hay sitio en el equipo ({motivo}); espera a la próxima pasada")
+                break
+            if simular:
+                log(f"lanzaría [{item['tipo']}]: {item['titulo'][:110]}")
+                continue
+            pid = lanzar(item)
+            e.setdefault("en_curso", {})[item["id"]] = {"pid": pid, "tipo": item["tipo"], "desde": ahora().isoformat(),
+                                                        "titulo": item["titulo"][:120], "editada": item["editada"]}
+            log(f"lanzada [{item['tipo']}] (pid {pid}): {item['titulo'][:110]}")
+        if not simular:
+            guardar(e)
+    if ya_iban:
+        log(f"siguen en marcha de antes: {ya_iban}")
+    if not nuevas and not ya_iban:
         log("nada que hacer")
 
 
@@ -412,6 +508,7 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="kumi recepcion", description="Recepción de Kumi: bases de tareas e ideas de Notion")
     ap.add_argument("--simular", action="store_true")
     ap.add_argument("--token", action="store_true")
+    ap.add_argument("--una", nargs=2, metavar=("TIPO", "ID"), help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
     if a.token:
         import getpass
@@ -420,6 +517,9 @@ def main(argv: list[str] | None = None) -> None:
         print("Guardado.")
         return
     try:
+        if a.una:
+            una(*a.una)
+            return
         pasada(a.simular)
     except Exception as ex:  # noqa: BLE001
         log(f"ERROR: {ex}")

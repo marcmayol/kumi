@@ -11,7 +11,17 @@ task → central (manager + planner) → factories → test factories → superv
 
 Every task works in its own git worktree, so your checkout is untouched until the change is approved.
 
-> **Status: alpha (0.1).** In daily use on one setup: Windows, Claude Code, Android apps, websites, Rust and Python. Linux and macOS should work but are not tested yet. The agent instructions (trades, modes) and the CLI messages are in Spanish for now.
+**Everything runs in parallel.** Tasks run side by side, each in its own process, and the test chains of a task run at the same time. Factories in a chain still go in order, since each one builds on the previous one. Before starting an agent, Kumi checks free disk and RAM and waits if the machine is full:
+
+```toml
+[recursos]
+max_paralelo = 4       # tasks at once
+min_disco_gb = 15      # free where the worktrees live
+min_sistema_gb = 8     # free on the system disk
+min_ram_gb = 6
+```
+
+> **Status: alpha (0.2).** In daily use on one setup: Windows, Claude Code, Android apps, websites, Rust and Python. Linux and macOS should work but are not tested yet. The agent instructions (trades, modes) and the CLI messages are in Spanish for now.
 
 ## Install
 
@@ -103,7 +113,7 @@ Where work comes in and where Kumi talks: notices, questions and human PR approv
 
 ### Notion
 
-`kumi recepcion` makes one pass over two Notion databases, tasks and ideas. Schedule it hourly with cron, launchd or the Windows Task Scheduler. Tasks need:
+`kumi recepcion` makes one pass over two Notion databases, tasks and ideas: it launches every task that is due and returns at once. Schedule it hourly with cron, launchd or the Windows Task Scheduler. Tasks need:
 
 - an `Estado` status property with «Sin empezar», «En progreso» and «Listo»;
 - a `humano` select property. Only tasks set to `no` are done; the rest are logged as skipped, with the reason.
