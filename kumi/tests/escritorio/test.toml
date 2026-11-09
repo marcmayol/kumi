@@ -1,0 +1,5 @@
+nombre = "escritorio"
+descripcion = "Usa la app de escritorio en Windows como una persona: arranca, captura la ventana, interactúa por UI Automation, a 100 % y 150 % de escala y en tema claro y oscuro"
+provisional = false
+# La pantalla es una: una prueba a la vez.
+cupo = 1

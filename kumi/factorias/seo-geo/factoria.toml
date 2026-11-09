@@ -1,0 +1,36 @@
+# Factoría SEO + GEO + preparación para agentes (Astro, HTML estático u otra web que se construya a ficheros)
+nombre = "seo-geo"
+descripcion = "SEO clásico, GEO (que buscadores e IA citen la web) y preparación para agentes: metadatos, JSON-LD, sitemap, robots, llms.txt, Markdown y .well-known"
+# Usa herramientas MCP (claude-seo, verify-seo, humanizar si están): hace falta un motor con MCP.
+necesita = ["shell", "ficheros", "mcp"]
+provisional = false
+# Nunca gana a `web` como factoría principal: casi siempre entra encadenada (`--ruta web,seo-geo`)
+# o porque la tarea es de SEO (`--ruta seo-geo`). Su huella sirve para que sus tests corran en las webs.
+prioridad = 1
+
+# «web» también: lo que toca esta factoría (head, imágenes, endpoints) puede romper la web.
+tests = ["seo-geo", "web"]
+encadena_con = []
+# Una por proyecto ya la garantiza la central; dos webs distintas a la vez no se pisan.
+cupo = 2
+
+[huella]
+# Webs con dominio propio o con un generador que publica sitemap. Las páginas sueltas que cuelgan
+# de otro dominio (solo index.html) no casan, y sus tests no la llevan.
+todos = []
+alguno = [
+  "astro.config.*", "next.config.*", "nuxt.config.*", "gatsby-config.*", "svelte.config.*",
+  "hugo.toml", "hugo.yaml", "eleventy.config.*", ".eleventy.js", "_config.yml",
+  "*CNAME", "*llms.txt*", "*sitemap*.xml*",
+]
+# Apps Android con su web de privacidad en docs/, Rust y plugins: tienen HTML pero no son webs.
+nunca = ["*AndroidManifest.xml", "*Cargo.toml", "*.claude-plugin/plugin.json"]
+
+# Despliegue por defecto si el proyecto no tiene receta en {recetas}: las webs se publican
+# al llegar a main (GitHub Pages con Actions); la central escucha la CI tras el push.
+# Los prod tests dependen de la URL de cada web: van en su receta (ver tests/seo-geo/oficio.md).
+[publicar]
+merge = true
+push = true
+pasos = []
+prod_tests = []

@@ -1,0 +1,31 @@
+# Factoría Alexa (skills custom en Node.js con ask-sdk, Alexa-hosted o con su propia Lambda)
+nombre = "alexa"
+descripcion = "Skills de Alexa en Node.js (ask-sdk-core), Alexa-hosted o en Lambda propia, con skill-package y modelo de interacción"
+provisional = false
+# Si un repo casa con varias factorías, produce la de más prioridad (y pasan los tests de todas).
+prioridad = 7
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["alexa", "cyber"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = []
+# Cuántas tareas de esta factoría pueden ir a la vez (en proyectos distintos).
+cupo = 2
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas).
+# Manifiesto de la skill + algún modelo de interacción (formato ASK CLI v2 o v1) o el fichero de recursos de ASK CLI.
+todos = ["*skill.json"]
+alguno = ["*interactionModels/custom/*.json", "*models/??-??.json", "*ask-resources.json"]
+nunca = []
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en {recetas}.
+# En Alexa-hosted, el push al repo de CodeCommit de la skill YA despliega en la fase de desarrollo:
+# por eso todo lo que va a lambda/ o skill-package/ es nivel 2 (riesgo.toml) y {humano} lo aprueba antes.
+# Si el remoto es GitHub (como AlexaBasuraArta), el push no despliega nada: el despliegue es manual en
+# la consola y debe quedar escrito en la receta del proyecto.
+[publicar]
+merge = true
+push = true
+pasos = []
+prod_tests = []

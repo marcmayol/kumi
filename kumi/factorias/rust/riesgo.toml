@@ -1,0 +1,44 @@
+# Riesgo propio de Rust. Nivel 2 = {humano} aprueba antes de publicar.
+# Se suma a factorias/riesgo.toml (CI, secretos, el ritual de publicar, CLAUDE.md…).
+# Solo cuentan las reglas de la factoría que produce: por eso aquí van también el manifiesto del
+# plugin y los instaladores, que en muchos proyectos viven en el mismo repo.
+
+[nivel0]
+rutas = [
+  "assets/*", "*.woff2", "*.ico", "*.gif",
+  "*.tsv",                                    # baterías de casos de los tests y del eval
+]
+
+[nivel2]
+rutas = [
+  # Versión, dependencias, perfil de compilación, toolchain y lo que se ejecuta al compilar
+  "*Cargo.toml", "*Cargo.lock", "*build.rs", "*.cargo/config.toml", "*.cargo/config",
+  "*rust-toolchain*", "*deny.toml",
+  # Datos del usuario: esquema y migraciones de SQLite, y lo que leen otras versiones
+  "*src/db.rs", "*schema*", "*esquema*", "*migra*", "*.sql",
+  "*src/sync*.rs", "*src/copia.rs", "*src/importar.rs", "*export*",
+  "tests/compat.rs",                          # lo que se promete a versiones anteriores
+  # Cifrado, claves, identidad y actualizarse solo (comprueba la firma de las Releases)
+  "*src/auth.rs", "*src/oauth.rs", "*src/secretos.rs", "*cifra*", "*crypt*", "*firma*",
+  "*src/actualizar.rs",
+  # Lo que escribe en la configuración de otros programas (los agentes del usuario)
+  "*src/setup.rs", "*src/agentes.rs",
+  # Instaladores y canales de distribución
+  "install.ps1", "install.sh", "*instalar*", "npm/*", "*.iss",
+  ".claude-plugin/*", "*/.claude-plugin/*",
+]
+contenido = [
+  # Código inseguro y enlaces a mano
+  '\bunsafe\s*(\{|fn\b|impl\b|extern\b)', '#\[no_mangle\]', 'extern\s+"C"',
+  'cargo:rustc-link',
+  # Esquema y formato persistido
+  '(?i)\b(CREATE\s+(TABLE|INDEX|TRIGGER|VIRTUAL\s+TABLE)|PRAGMA\s+user_version)\b',
+  'VERSION_ESQUEMA|min_reader|lector_minimo|schema_version',
+  '#\[serde\([^)]*\b(rename|rename_all|alias|tag|untagged|deny_unknown_fields|flatten)\b',
+  # Cifrado y firma
+  '\b(aes_siv|ring::(signature|aead|hmac)|argon2|ed25519|Ed25519|chacha20|getrandom)\b',
+  # Borrar datos del usuario fuera de una carpeta temporal
+  'remove_dir_all\s*\(\s*(&?\s*)?(home|datos|base|dir_datos|carpeta_datos)',
+  # Variables que deciden de quién son los datos
+  '"[A-Z]+_(HOME|DB|DATA|DATOS|DIR)"',
+]

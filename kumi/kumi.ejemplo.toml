@@ -1,0 +1,114 @@
+# Kumi: configuración de ejemplo con todas las opciones. La tuya está en ~/.kumi/kumi.toml (`kumi init` la crea;
+# otra carpeta con KUMI_HOME, otro fichero con KUMI_CONFIG).
+# Todo es opcional: lo que no pongas toma el valor por defecto (todo con Claude Code, avisos al escritorio).
+# `kumi config` te dice qué motor hace cada papel, qué falta instalar y qué no cuadra.
+
+[persona]
+nombre = "Ana"                     # quien aprueba: sale en los avisos y en las instrucciones de los agentes
+idioma = "es"
+
+[rutas]
+proyectos = "~/proyectos"          # dónde crea Kumi los proyectos nuevos
+# android_sdk = "~/Android/Sdk"    # vacío = ANDROID_HOME, ANDROID_SDK_ROOT o la carpeta de Android Studio
+avd_test = "kumi_test"             # emulador para las pruebas de Android (se crea en el primer uso)
+# Notas locales: lo que solo vale en tu máquina o para tus proyectos, fuera del catálogo compartido.
+#   <notas>/factorias/<nombre>.md y <notas>/tests/<nombre>.md   se suman al oficio de esa factoría
+#   <notas>/factorias/<nombre>.riesgo.toml                       reglas de riesgo extra (comun.riesgo.toml = todas)
+#   <notas>/recetas/<repo>.toml                                  cómo se publica cada proyecto
+#   <notas>/inventario.md                                        tus repos, para la recepción
+# notas = "~/kumi-notas"
+# compilacion = "~/kumi-cache"     # cachés de compilación (target de cargo…); por defecto, en la carpeta temporal
+# datos = "~/.kumi"                # tareas, obras (worktrees), registro y cadenas propias; por defecto, ~/.kumi
+
+[gasto]                            # topes en dólares; 0 o sin poner = sin tope. Al pasarlo, la tarea se para y avisa
+por_tarea_usd = 15                 # una tarea con sus vueltas del supervisor y los cambios pedidos
+por_dia_usd = 60                   # todos los agentes en un día
+# Solo cuenta lo que el motor declara: Claude Code da el coste de cada sesión; otros motores, no siempre.
+
+[memoria]
+motor = "omoikane"                 # o "ninguna": sin perfiles por proyecto ni cola de decisiones
+
+[versiones]
+minor_sin_cero = false             # true: 2.21 → 2.22 en vez de 2.22.0
+
+# ---------------------------------------------------------------------------------------------------
+# Qué motor y modelo hace cada papel. Cada papel es una LISTA: si el primero no está instalado, no
+# sabe hacer lo que la factoría necesita o se cae sin dejar resultado, se usa el siguiente.
+#   "motor" o "motor:modelo"  o  {motor = "...", modelo = "..."}
+#
+# Motores agente (trabajan en una carpeta con herramientas):
+#   claude-code, codex, gemini-cli, opencode, aider, o uno propio en [motores.<nombre>]
+# Motores de consulta (solo para encargado y recepción: preguntas cortas sin herramientas):
+#   los de arriba, o una API directa: anthropic, openai, google, openrouter, ollama, lmstudio
+# ---------------------------------------------------------------------------------------------------
+[papeles]
+encargado    = ["anthropic:claude-sonnet-5-5", "claude-code:sonnet"]   # la central: decide qué factorías
+recepcion    = ["anthropic:claude-sonnet-5-5"]                         # ¿de qué repo es lo que entra?
+aprendiz     = ["claude-code:sonnet"]                                  # propone reglas de oficio
+planificador = ["claude-code:opus"]                                    # diseña factorías nuevas
+factoria     = ["codex:gpt-5-codex", "claude-code"]                    # escribe el código
+test         = ["claude-code:opus"]                                    # mejor otra familia que la factoría
+revisor      = ["gemini-cli:gemini-2.5-pro"]                           # revisión de nivel 2, tercera familia
+oficina      = ["claude-code"]                                         # tareas que no son de un repo
+
+# Afinar por factoría o test concreto (gana sobre el papel):
+[papeles_por_nombre]
+"factoria:android" = ["claude-code"]          # p. ej., Android con Claude Code y el resto con Codex
+"test:seo-geo"     = ["claude-code:sonnet"]
+
+# Y por proyecto, sin tocar este fichero:
+#   kumi perfil --proyecto ~/proyectos/mi-web --motor factoria=opencode:ollama/qwen3-coder
+
+# Motores propios o ajustes de los de serie.
+[motores.ollama]
+url = "http://localhost:11434/v1"
+
+[motores.mi-agente]
+tipo = "comando"
+# {instrucciones} = fichero con las instrucciones · {modelo} · {mensaje} = «lee {instrucciones} y síguelo»
+orden_plantilla = "mi-agente --model {modelo} --prompt-file {instrucciones}"
+capacidades = ["shell", "ficheros"]
+familia = "propia"
+
+# ---------------------------------------------------------------------------------------------------
+[riesgo]
+# Un cambio de nivel 2 (auth, pagos, secretos, CI, migraciones…) pasa además por estas factorías de test,
+# justo después de la factoría. La aprobación humana sigue al final, con todo en verde.
+nivel2_tests = ["revision"]
+max_vueltas_supervisor = 2
+
+[decisiones]
+contradiccion_a_spec = true        # una tarea que choca con una decisión ya tomada va con spec
+
+# ---------------------------------------------------------------------------------------------------
+# Canales. Los secretos no van aquí: se dice en qué variable de entorno están (<clave>_env).
+[canales.escritorio]
+
+[canales.telegram]                 # ida y vuelta: avisos, botones Aprobar/Pedir cambios, /tarea, /estado
+token_env = "KUMI_TELEGRAM_TOKEN"  # `kumi escuchar` recibe las órdenes
+chat = "123456789"
+aprobadores = ["123456789"]        # ids de Telegram que pueden aprobar; el resto se ignora
+
+[canales.discord]                  # solo avisos (webhook del canal)
+webhook_env = "KUMI_DISCORD_WEBHOOK"
+
+[canales.ntfy]
+tema = "kumi-ana-x7k2"
+# servidor = "https://ntfy.midominio.com"
+
+[canales.correo]
+servidor = "smtp.midominio.com"
+usuario = "kumi@midominio.com"
+clave_env = "KUMI_SMTP_CLAVE"
+de = "kumi@midominio.com"
+a = "ana@midominio.com"
+
+# [canales.notion]                 # `kumi recepcion`: bases de datos de tareas e ideas (token: NOTION_TOKEN o `kumi recepcion --token`)
+# tareas = "<id del data source>"
+# ideas = "<id del data source>"
+
+[enrutado]
+aviso     = ["escritorio", "telegram"]
+pr_humana = ["telegram"]
+pregunta  = ["telegram"]
+cliente   = ["correo"]

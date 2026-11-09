@@ -1,0 +1,51 @@
+# Factoría Python (apps de escritorio Windows con tkinter/Qt, scripts, servicios y librerías)
+nombre = "python"
+descripcion = "Proyectos Python: apps de escritorio Windows (tkinter, Qt, bandeja), scripts, servicios y librerías"
+provisional = false
+# Por debajo de android, rust y plugin-claude: muchos de esos repos llevan .py sueltos (scripts de publicar, pruebas).
+prioridad = 4
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["python", "cyber"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = []
+# Cuántas tareas de esta factoría pueden ir a la vez (en proyectos distintos).
+cupo = 2
+
+# PROPUESTA (Kumi aún no la lee): tests que se añaden si el repo casa con alguno de estos globs.
+# Hoy el encargado tiene que añadir «escritorio» a mano cuando el repo es una app de escritorio.
+# Solo miran rutas de git, así que una app tkinter de un solo fichero (app.pyw en la raíz) no se delata
+# por la ruta; para eso va `tests_si_contenido`, también propuesta: regex sobre los .py y .pyw.
+tests_si = { escritorio = [
+  "*.pyw", "*tkinter*", "*tray*.py", "*bandeja*", "*/qt/*", "*/gui/*", "*gui.py", "*ventana*",
+  "*.iss", "*.spec", "*.ico", "*pyinstaller*", "*build_exe*", "*construir_exe*", "*instalador*",
+] }
+tests_si_contenido = { escritorio = [
+  '^\s*(import|from)\s+(tkinter|customtkinter|PySide6|PyQt5|PyQt6|pystray|wx|webview|flet|dearpygui)\b',
+] }
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas).
+todos = []
+alguno = [
+  "*pyproject.toml", "*requirements*.txt", "*setup.py", "*setup.cfg", "*Pipfile", "*uv.lock",
+  "*.py", "*.pyw",
+]
+# Repos Android, Rust y plugins de Claude Code también llevan .py (publicar_release.py, pruebas, el
+# servidor MCP del plugin): esos tienen su factoría. Ojo: `.claude/*` NO va aquí, hay apps Python que lo llevan en git.
+nunca = [
+  "*AndroidManifest.xml", "*build.gradle.kts", "*build.gradle",
+  "*Cargo.toml",
+  "*.claude-plugin/*",
+  "*package.json",
+  "index.html",          # web estática con generadores en Python: es de la factoría web
+]
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en {recetas}.
+# Prudente: merge local y nada más. Push, Release o PyPI solo con receta del proyecto
+# (p. ej. un scripts/publicar_release.py propio, o subir a PyPI desde una Release).
+[publicar]
+merge = true
+push = false
+pasos = []
+prod_tests = []

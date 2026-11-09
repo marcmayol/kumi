@@ -1,0 +1,29 @@
+# Riesgo propio de Electron y Tauri. Nivel 2 = {humano} aprueba antes de publicar.
+
+[nivel0]
+rutas = ["build/*.png", "resources/*.png", "*/locales/*", "*.css"]
+
+[nivel2]
+rutas = [
+  "*package.json", "*package-lock.json", "*pnpm-lock.yaml", "*yarn.lock",   # dependencias, versión y config de electron-builder
+  "*electron-builder*", "*forge.config.*", "*.nsh", "*.iss",                  # empaquetado e instalador
+  "build/icon.ico", "build/icon.icns",
+  "*src-tauri/tauri.conf.json*", "*src-tauri/Tauri.toml", "*src-tauri/capabilities/*", "*src-tauri/Cargo.toml",
+  "*preload.*", "*electron/preload*",                                          # lo que el renderer puede tocar
+  "docs/updates.json", "*latest.yml",                                          # manifiestos de actualización
+]
+contenido = [
+  # Aislamiento del renderer: abrirlo deja que una página ejecute código en la máquina.
+  'nodeIntegration\s*:\s*true', 'contextIsolation\s*:\s*false', 'sandbox\s*:\s*false',
+  'webSecurity\s*:\s*false', 'allowRunningInsecureContent\s*:\s*true', 'enableRemoteModule',
+  # Puentes y shell.
+  'contextBridge\.exposeInMainWorld', 'shell\.openExternal\(', 'child_process', '\bexec(Sync)?\(',
+  # Actualizador automático y protocolos propios.
+  'autoUpdater', 'setAsDefaultProtocolClient', 'registerFileProtocol|protocol\.handle',
+  # Tauri: permisos y CSP.
+  '"csp"\s*:\s*null', '"dangerousDisableAssetCspModification"', 'shell:allow-execute|fs:allow-.*-recursive',
+  # Datos del usuario y arranque con Windows.
+  'rmSync\(|rm\(.*recursive|rimraf', 'setLoginItemSettings',
+  # Escuchar en la red.
+  "listen\\(.*['\"]0\\.0\\.0\\.0",
+]

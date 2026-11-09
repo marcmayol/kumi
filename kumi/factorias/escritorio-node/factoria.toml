@@ -1,0 +1,40 @@
+# Factoría de escritorio con Node (Electron; Tauri si el front es Node)
+nombre = "escritorio-node"
+descripcion = "Apps de escritorio con Electron (electron-builder, Forge) o Tauri, empaquetadas para Windows"
+provisional = false
+# Por debajo de android y rust; por encima de nada que use package.json para una web (la web tiene su factoría).
+prioridad = 4
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["escritorio-node", "escritorio", "cyber"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = []
+# Cuántas tareas de esta factoría pueden ir a la vez (en proyectos distintos).
+cupo = 2
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas). La huella solo ve rutas, no el contenido
+# del package.json: se reconoce Electron por sus ficheros de configuración o por los recursos que
+# electron-builder busca por defecto (build/icon.ico, build/icon.icns), que es lo único que lleva
+# excalidraw-desktop. Tauri, por src-tauri/.
+todos = ["*package.json"]
+alguno = [
+  "*electron-builder.yml", "*electron-builder.yaml", "*electron-builder.json*", "*electron-builder.config.*",
+  "*forge.config.*", "*electron.vite.config.*", "*electron-vite.config.*", "*vite.electron.config.*",
+  "*electron/main.*", "*electron/preload.*", "*src/main/main.*", "*preload.js", "*preload.ts", "*preload.cjs",
+  "build/icon.ico", "build/icon.icns",
+  "*src-tauri/tauri.conf.json", "*src-tauri/tauri.conf.json5", "*src-tauri/Tauri.toml",
+]
+nunca = [
+  "*AndroidManifest.xml",
+  "*.claude-plugin/*",
+  "*astro.config.*", "*next.config.*", "*nuxt.config.*", "*svelte.config.*",  # webs
+]
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en {recetas}.
+# Prudente: merge local. El instalador y la Release de GitHub solo con receta del proyecto.
+[publicar]
+merge = true
+push = false
+pasos = []
+prod_tests = []

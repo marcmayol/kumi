@@ -1,0 +1,26 @@
+# Reglas de riesgo comunes a todas las fábricas. Cada fábrica añade las de su stack.
+# Nivel 2 = la central no publica sola: espera a que {humano} apruebe.
+
+[nivel0]
+rutas = ["*.md", "docs/*", "*.txt", "LICENSE*", "*.png", "*.jpg", "*.webp", "*.svg"]
+
+[nivel2]
+rutas = [
+  ".github/*", ".gitlab-ci.yml",               # CI: decide qué se publica
+  ".env*", "*.keystore", "*.jks", "keystore.properties", "*secrets*", "*credentials*",
+  "*publicar_release*", "*deploy*",           # el propio ritual de publicar
+  "CLAUDE.md", ".claude/*",                    # instrucciones de los agentes
+]
+# Quitar una protección también es nivel 2: se mira en las líneas borradas del diff.
+borrado = [
+  '(?i)\bnoindex\b', '(?i)x-robots-tag',
+  '(?i)content-security-policy|strict-transport-security|x-frame-options',
+  '(?i)\b(require|check|verify|ensure)_?(auth|permission|login|admin)',
+]
+contenido = [
+  '(?i)(password|passwd|secret|api[_-]?key|private[_-]?key|bearer)\s*[=:]',
+  '(?i)\b(stripe|paypal|billing|checkout|in-?app ?purchase)\b',
+  '(?i)\b(oauth|signIn|login|auth(entication|orization)?)\b\s*[({=]',
+  # SQL de verdad (en mayúsculas y con su objeto): «Delete from history» en una traducción no lo es.
+  '\b(DROP\s+(TABLE|DATABASE|INDEX)|TRUNCATE\s+TABLE|DELETE\s+FROM\s+\w+|ALTER\s+TABLE)\b',
+]

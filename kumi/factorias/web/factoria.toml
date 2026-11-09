@@ -1,0 +1,38 @@
+# Factoría web (Astro y webs estáticas HTML; sin WordPress: si llega uno, tendrá su propia cadena)
+nombre = "web"
+descripcion = "Webs Astro y webs estáticas HTML/CSS/JS publicadas en GitHub Pages (con o sin GitHub Actions)"
+# Usa herramientas MCP (el navegador y, si están, las de textos): hace falta un motor con MCP.
+necesita = ["shell", "ficheros", "mcp"]
+provisional = false
+# Menos que android (10): una app con docs/index.html se produce en su factoría, no aquí.
+prioridad = 5
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["web", "cyber", "seo-geo"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = ["seo-geo"]
+# Cuántas tareas de esta factoría pueden ir a la vez (en proyectos distintos).
+cupo = 2
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas).
+todos = []
+# Astro (su config o sus páginas) o una web estática con su index.html.
+alguno = ["*astro.config.*", "*.astro", "*index.html"]
+# Si el repo es otra cosa con una página de documentación, no es una web: lo produce su factoría.
+nunca = [
+  "*AndroidManifest.xml",                                   # app Android con docs/ de Pages
+  "*Cargo.toml",                                            # Rust
+  "*.claude-plugin/plugin.json", "*.claude-plugin/marketplace.json",  # plugins de Claude Code
+  "*pyproject.toml", "*setup.py",                           # Python (una app de escritorio puede llevar docs/index.html)
+  "*requirements*.txt",                                     # app Python con interfaz web local
+  "*go.mod", "*.csproj", "*.sln",
+]
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en {recetas}.
+# En las webs de {humano} el push a la rama principal ES el despliegue (Actions o Pages desde la rama).
+[publicar]
+merge = true
+push = true
+pasos = []
+prod_tests = []

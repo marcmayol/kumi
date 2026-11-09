@@ -1,0 +1,5 @@
+nombre = "plugin-claude"
+descripcion = "Valida manifiestos, carga el plugin en sesiones claude -p aisladas (skills, hooks, MCP), mide si ralentiza y prueba la instalación desde el marketplace"
+provisional = false
+# Cada prueba abre varias sesiones de Claude con el uso de {humano}: de una en una.
+cupo = 1

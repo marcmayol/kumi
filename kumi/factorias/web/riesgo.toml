@@ -1,0 +1,39 @@
+# Riesgo propio de webs. Nivel 2 = {humano} aprueba antes de publicar.
+# En estas webs el push a la rama principal despliega: lo que pase de aquí está en producción en 1-2 minutos.
+
+[nivel0]
+rutas = [
+  "src/content/*",                                          # artículos Markdown/MDX
+  "*.mdx",
+  "*.webp", "*.avif", "*.gif", "*.jpeg", "*.ico",           # el resto de imágenes ya está en el común
+  "public/capturas/*", "public/images/*", "images/*",
+]
+
+[nivel2]
+rutas = [
+  "*astro.config.*",                     # site, base, redirects, i18n y filtros del sitemap: un cambio puede desindexar o romper rutas
+  "*CNAME", "*.nojekyll",                # dominio y forma de servir de GitHub Pages
+  "*robots.txt", "*llms.txt",            # quién puede rastrear e indexar
+  "redirects.json", "*_redirects", "*_headers", "*404.html",   # un 404.html puede ser la redirección de todo el sitio
+  "*.well-known/*",                      # api-catalog, skills de agentes, assetlinks, security.txt
+  "*package.json", "*package-lock.json", # dependencias nuevas o subidas de Astro
+  "*Caddyfile", "*vercel.json", "*netlify.toml", "*wrangler.toml",
+  "*n8n*",                               # workflows de un backend de formularios
+  "*BaseHead*", "src/layouts/*",         # cabecera común: canonical, hreflang, robots y scripts de terceros de todas las páginas
+  "*openapi.json", "*openapi.yaml",      # contrato de una API que usan otras apps
+]
+# Literales triples para poder llevar comillas simples dentro.
+contenido = [
+  '''<form\b''',                                                  # formularios nuevos: reciben datos
+  '''(?i)method\s*[:=]\s*["']?post''',                            # envíos de datos
+  '''https?://[^\s"'<>]+/webhook(-test)?/''',                     # endpoints de n8n
+  '''(?i)<script[^>]+src\s*=\s*["']?(https?:)?//''',              # scripts de terceros
+  '''(?i)<iframe[^>]+src\s*=\s*["']?(https?:)?//''',              # incrustados de terceros
+  '''(?i)googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|clarity\.ms|hotjar\.com''',
+  '''(?i)fonts\.googleapis\.com|use\.typekit\.net''',             # fuentes de terceros
+  '''(?i)<meta[^>]+(noindex|nofollow)|X-Robots-Tag''',            # desindexar una página
+  '''(?i)http-equiv\s*=\s*["']?refresh|location\.(replace|href)\s*=?\s*\(?\s*["']https?://''',  # redirecciones a otro sitio
+  '''(?i)Content-Security-Policy''',
+  '''import\.meta\.env\.(?!(PROD|DEV|BASE_URL|SITE|MODE)\b)''',   # variables de entorno (secretos en el build)
+  '''(?i)\.innerHTML\s*=|set:html|dangerouslySetInnerHTML''',     # HTML sin escapar
+]

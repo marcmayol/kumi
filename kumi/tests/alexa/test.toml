@@ -1,0 +1,5 @@
+nombre = "alexa"
+descripcion = "Prueba la skill de Alexa sin desplegar: la lambda con eventos de ejemplo en varias fechas, el modelo de interacción y el manifiesto"
+provisional = false
+# Solo Node y ficheros en su carpeta: no comparte recursos únicos.
+cupo = 2

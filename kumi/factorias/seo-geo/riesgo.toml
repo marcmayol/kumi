@@ -1,0 +1,34 @@
+# Riesgo propio de SEO/GEO. Nivel 2 = {humano} aprueba antes de publicar.
+# Aquí va lo que puede desindexar la web o hundir su posicionamiento de un día para otro.
+# Ojo: riesgo.py no ve renombrados ni borrados de páginas (un slug que cambia es un fichero
+# nuevo): eso lo caza la cadena de test seo-geo al comparar las URL de main con las de la rama.
+# Los patrones con comilla simple van entre ''' porque en TOML '...' no puede llevarla.
+
+[nivel0]
+rutas = []
+
+[nivel2]
+rutas = [
+  "*robots.txt*",                               # también un endpoint robots.txt.ts
+  "*sitemap*",                                  # sitemap a mano, endpoint o su configuración
+  "astro.config.*", "next.config.*", "nuxt.config.*", "svelte.config.*",
+  "hugo.toml", "hugo.yaml", "_config.yml",      # site, base, trailingSlash, redirects, i18n
+  "*CNAME",                                     # el dominio
+  "redirects.json", "*_redirects", "vercel.json", "netlify.toml", "*.htaccess", "*_headers",
+  "*routes.mjs", "*routes.ts",                  # mapas de rutas
+]
+contenido = [
+  '(?i)\bnoindex\b',                                       # meta robots o cabecera
+  '(?i)x-robots-tag',
+  '''(?i)name\s*=\s*["'](robots|googlebot|bingbot)["']''',
+  '''(?i)rel\s*=\s*["']canonical["']''',
+  '(?i)\bcanonical(URL|Url)?\s*[:=]',
+  '''(?i)http-equiv\s*=\s*["']refresh''',
+  'Astro\.redirect\(',
+  '(?i)\bredirects\s*[:=]',
+  '(?m)^\s*(slug|permalink)\s*:',                          # frontmatter que cambia la URL
+  '\btrailingSlash\s*:',
+  '''(?m)^\s*(site|base)\s*:\s*["']''',
+  '(?im)^\s*Disallow\s*:',
+  '(?i)Content-Signal\s*:',                                # política de uso por IA (ai-train)
+]

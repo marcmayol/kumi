@@ -1,0 +1,8 @@
+nombre = "revision"
+descripcion = "Revisión del cambio con un modelo de otra familia que el que lo construyó: ¿hace lo pedido, sin hacer de más, sin romper lo de alrededor y sin abrir agujeros?"
+provisional = false
+# Corre con el motor del papel «revisor» de kumi.toml (no el de «test»): así se elige otra familia de modelos.
+papel = "revisor"
+# Solo lee y ejecuta git y los tests: cualquier agente que ejecute órdenes sirve.
+necesita = ["shell", "ficheros"]
+cupo = 3

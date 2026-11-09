@@ -1,0 +1,10 @@
+tareas/
+obras/
+cerrojos/
+registro.json
+__pycache__/
+*.log
+kumi.toml
+dist/
+.venv/
+.ruff_cache/

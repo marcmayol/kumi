@@ -1,0 +1,25 @@
+# Riesgo propio de las skills de Alexa. Nivel 2 = {humano} aprueba antes de publicar.
+# Lo que acaba en el servicio vivo de Alexa (código de la lambda, modelo, manifiesto, despliegue) es nivel 2:
+# en Alexa-hosted un push basta para que la skill cambie en los Echo de quien la usa.
+
+[nivel0]
+rutas = ["*skill-package/assets/*"]   # iconos de la ficha
+
+[nivel2]
+rutas = [
+  "*lambda/*",                                  # código que se despliega (sourceDir)
+  "*skill-package/skill.json", "*skill.json",   # manifiesto: permisos, países, distribución, endpoint
+  "*interactionModels/*", "*models/*.json",     # modelo de interacción: hay que reconstruirlo en Amazon
+  "*ask-resources.json", ".ask/*",              # cómo y dónde despliega ASK CLI
+  "*infrastructure/*", "hooks/*",               # Lambda propia (CloudFormation/CDK) y hooks de ASK CLI
+]
+contenido = [
+  '"permissions"\s*:', 'alexa::',                                     # permisos de datos del usuario
+  '"(allowsPurchases|usesPersonalInfo|isChildDirected|containsAds)"\s*:\s*true',
+  '"(isAvailableWorldwide|distributionCountries|distributionMode)"',
+  '"uri"\s*:\s*"arn:aws',                                             # endpoint de una Lambda propia
+  'PersistenceAdapter|PersistentAttributes',                          # datos guardados por usuario
+  'S3_PERSISTENCE_BUCKET|DYNAMODB_PERSISTENCE',
+  'withAskForPermissionsConsentCard|getDeviceAddressServiceClient|getUpsServiceClient',
+  '''require\(\s*['"](axios|node-fetch|https?|aws-sdk|@aws-sdk/[\w-]+)['"]\s*\)''',   # llamadas a otros servicios
+]

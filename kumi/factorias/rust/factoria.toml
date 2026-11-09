@@ -1,0 +1,32 @@
+# Factoría Rust (binarios CLI, servidores MCP por stdio o HTTP, servicios y librerías con Cargo)
+nombre = "rust"
+descripcion = "Proyectos Rust con Cargo: CLI, servidores MCP, servicios web y librerías"
+provisional = false
+# Por debajo de android (10): un repo Android con un trozo en Rust lo produce android y pasa también los tests de rust.
+prioridad = 8
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["rust", "cyber"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = []
+# Una a la vez: cada `target/` de un proyecto grande ocupa ~12 GB en debug;
+# un enlazado con LTO se come varios GB de RAM y todos los núcleos.
+cupo = 1
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas): vale también para un crate en una subcarpeta
+# (plugins/<x>/Cargo.toml). Si otra factoría con más prioridad casa, esa produce y esta solo aporta tests.
+todos = ["*Cargo.toml"]
+alguno = ["*.rs"]
+# Un marketplace con varios plugins dentro lo produce plugin-claude aunque lleve un MCP en Rust.
+nunca = ["plugins/*/.claude-plugin/plugin.json"]
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en las recetas de esta instalación.
+# Prudente a propósito: publicar en crates.io, en una Release o en npm no se puede deshacer y cada
+# proyecto lo hace a su manera (tag que lanza release.yml, cargo publish después, publicar_release.py…).
+# Eso va en la receta del proyecto, que pasa por nivel 2.
+[publicar]
+merge = true
+push = false
+pasos = []
+prod_tests = []

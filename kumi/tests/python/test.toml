@@ -1,0 +1,5 @@
+nombre = "python"
+descripcion = "Pruebas de código Python: pytest, ruff y mypy si el repo los usa, y ejecutar de verdad los scripts tocados"
+provisional = false
+# Sin pantalla ni dispositivo: dos a la vez en proyectos distintos (ojo a la RAM si cargan modelos).
+cupo = 2

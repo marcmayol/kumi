@@ -1,0 +1,26 @@
+# Factoría Android (Kotlin, Gradle, Jetpack Compose o vistas, también Kotlin Multiplatform y Wear OS)
+nombre = "android"
+descripcion = "Apps Android nativas con Gradle (Kotlin/Java, Compose o vistas, KMP, Wear OS)"
+provisional = false
+# Si un repo casa con varias factorías, produce la de más prioridad (y pasan los tests de todas).
+prioridad = 10
+
+# Cadenas de test por las que pasa todo lo que sale de aquí.
+tests = ["android", "cyber"]
+# Factorías con las que se puede encadenar si la tarea lo pide (opcional).
+encadena_con = []
+# Cuántas tareas de esta factoría pueden ir a la vez (en proyectos distintos).
+cupo = 2
+
+[huella]
+# Globs sobre las rutas que lleva git (`*` cruza carpetas).
+todos = ["*AndroidManifest.xml"]
+alguno = ["*build.gradle.kts", "*build.gradle"]
+nunca = []
+
+# Despliegue por defecto, si el proyecto no tiene receta propia en {recetas}.
+[publicar]
+merge = true
+push = true
+pasos = []
+prod_tests = []

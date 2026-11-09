@@ -1,0 +1,5 @@
+nombre = "rust"
+descripcion = "Compila con la CI del repo (tests, clippy, release) y usa el binario de verdad en un entorno aislado: órdenes principales, MCP por stdio o HTTP, y comparación con la rama base"
+provisional = false
+# Compilar en release con LTO se come la CPU y varios GB de disco: una prueba a la vez.
+cupo = 1

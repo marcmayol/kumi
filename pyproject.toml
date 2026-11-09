@@ -1,0 +1,35 @@
+[project]
+name = "kumi"
+version = "0.1.0"
+description = "A software factory for AI coding agents: every task goes through a build chain, test chains, a risk gate and a human approval, with any engine and model per role."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Marc Mayol" }]
+keywords = ["ai-agents", "claude-code", "codex", "gemini-cli", "opencode", "automation", "ci"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = ["psutil>=5.9", "httpx>=0.27"]
+
+[project.urls]
+Homepage = "https://github.com/marcmayol/kumi"
+Issues = "https://github.com/marcmayol/kumi/issues"
+
+[project.scripts]
+kumi = "kumi.nucleo:main"
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kumi"]
+
+[tool.hatch.build.targets.sdist]
+include = ["kumi", "ejemplos", "README.md", "README.es.md", "LICENSE", "CHANGELOG.md"]

@@ -1,0 +1,5 @@
+nombre = "seo-geo"
+descripcion = "Construye la rama y main, las sirve en local y compara SEO, GEO y preparación para agentes (verify-seo, claude-seo, Lighthouse, enlaces): no puede empeorar nada"
+provisional = false
+# Cada prueba usa sus propios puertos libres y su propia carpeta: dos webs distintas a la vez no se pisan.
+cupo = 2

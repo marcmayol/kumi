@@ -1,0 +1,19 @@
+# Riesgo propio de Android. Nivel 2 = {humano} aprueba antes de publicar.
+
+[nivel0]
+rutas = ["*/res/values*/strings.xml", "*/res/drawable*", "*/res/mipmap*", "fastlane/*", "metadata/*"]
+
+[nivel2]
+rutas = [
+  "*/schemas/*",                      # esquemas exportados de Room
+  "*Migration*", "*migrations*",
+  "*proguard*", "*/release/*",
+  "*.gradle.kts", "*.gradle", "gradle.properties", "gradle/libs.versions.toml",  # firma, dependencias, versión
+]
+contenido = [
+  '@Database\s*\(', 'fallbackToDestructiveMigration', '\bMigration\s*\(',
+  '<uses-permission', 'android:exported\s*=\s*"true"',
+  'signingConfig', 'storePassword', 'keyPassword',
+  '\.deleteAll\(|clearAllTables\(|deleteDatabase\(',
+  'DataStore.*\.clear\(|SharedPreferences.*\.clear\(',
+]

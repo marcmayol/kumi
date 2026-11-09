@@ -1,0 +1,24 @@
+# Riesgo propio de Python. Nivel 2 = {humano} aprueba antes de publicar.
+
+[nivel0]
+rutas = ["assets/*", "*/assets/*", "*/locales/*", "*.po", "*.qss"]
+
+[nivel2]
+rutas = [
+  "*pyproject.toml", "*uv.lock", "*requirements*.txt", "*setup.py", "*setup.cfg", "*Pipfile*",  # dependencias y versión
+  "*.spec", "*.iss", "*build_exe*", "*construir_exe*", "*construir_instalador*",          # empaquetado e instalador
+  "*migrations*", "*migracion*", "*alembic*", "*schema*.sql",
+  "docs/updates.json", "*firma_esperada*", "*certificado*",                                 # manifiesto de actualización y firma
+]
+contenido = [
+  # Datos del usuario: borrar ficheros, carpetas o tablas.
+  'shutil\.rmtree\(', 'send2trash|os\.remove\(.*(datos|data|config|perfil|profile)', 'DROP TABLE|DELETE FROM',
+  # Ejecutar código o shell con texto que puede venir de fuera.
+  'subprocess\.\w+\([^)]*shell\s*=\s*True', '\beval\(|\bexec\(', 'pickle\.loads?\(',
+  # Escuchar en la red: en Windows hace falta regla de firewall y abre la máquina a la LAN.
+  "bind\\(\\s*\\(?\\s*['\"]0\\.0\\.0\\.0", "host\\s*=\\s*['\"]0\\.0\\.0\\.0", 'netsh\s+advfirewall',
+  # Arranque con Windows, registro y elevación.
+  'winreg\.(SetValue|CreateKey|DeleteKey)', 'CurrentVersion\\Run', 'ShellExecuteW?\([^)]*runas',
+  # Actualizador: descarga y ejecuta un instalador.
+  '(urlretrieve|requests\.get|urlopen)\(.*\.(exe|msi)\b', 'os\.startfile\(.*\.(exe|msi)\b',
+]

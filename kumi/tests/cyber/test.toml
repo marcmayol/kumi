@@ -1,0 +1,5 @@
+nombre = "cyber"
+descripcion = "Revisa la seguridad del cambio (diff de la rama contra su base y lo que lo rodea): secretos, dependencias vulnerables y fallos propios de cada stack"
+provisional = false
+# No usa emulador, dispositivo ni puerto fijo: pueden ir varias a la vez.
+cupo = 3

@@ -1,0 +1,5 @@
+nombre = "android"
+descripcion = "Recorre la app en el emulador en varios tamaños de móvil y de letra, con capturas y registro de cierres"
+provisional = false
+# El emulador es uno: una prueba a la vez.
+cupo = 1

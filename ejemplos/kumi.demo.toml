@@ -1,0 +1,34 @@
+# Demostración: la central con Anthropic y el código con otro motor y otro modelo (OpenCode + Qwen3 en local
+# por Ollama). Las pruebas, con Claude: otra familia que la que construye.
+#   KUMI_CONFIG=ejemplos/kumi.demo.toml kumi tarea --proyecto ~/proyectos/demo "…"
+#
+# Antes: `ollama pull qwen3:8b` y crear el alias con contexto largo (Modelfile con `PARAMETER num_ctx 32768`):
+#   ollama create qwen3-8b-32k -f Modelfile
+
+[persona]
+nombre = "Ana"
+
+[rutas]
+proyectos = "~/proyectos"
+
+[memoria]
+motor = "ninguna"                  # la demo no ensucia la memoria
+
+[gasto]
+por_tarea_usd = 3
+
+[papeles]
+encargado = ["claude-code:sonnet"]
+factoria  = ["opencode:ollama/qwen3-8b-32k", "claude-code:sonnet"]   # si OpenCode no deja resultado, respaldo
+test      = ["claude-code:haiku"]
+revisor   = ["claude-code:sonnet"]
+aprendiz  = ["claude-code:haiku"]
+
+[motores.opencode]
+argumentos = ["--pure"]
+env = { OPENCODE_CONFIG = "ejemplos/opencode-ollama.json" }   # ruta relativa a donde lances kumi
+
+[enrutado]
+aviso = ["escritorio"]
+pr_humana = ["escritorio"]
+pregunta = ["escritorio"]

@@ -1,0 +1,5 @@
+nombre = "escritorio-node"
+descripcion = "Prueba propia del stack Electron/Tauri: dependencias, tests del repo, empaquetado de Windows y arranque del ejecutable empaquetado. La ventana la recorre además la cadena común `escritorio`."
+provisional = false
+# Empaquetar y arrancar la app empaquetada: una a la vez.
+cupo = 1

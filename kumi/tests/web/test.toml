@@ -1,0 +1,6 @@
+nombre = "web"
+descripcion = "Construye la web, la levanta en local y la recorre con un navegador automatizado en móvil (letra normal, 1,3 y 1,5) y escritorio, con capturas, consola y enlaces"
+provisional = false
+# Cada prueba levanta su servidor en un puerto libre y su propio Chromium sin ventana: caben dos a la vez.
+# Más no: cada Chromium con cuatro tamaños se come RAM y el PC la tiene justa en tareas pesadas.
+cupo = 2

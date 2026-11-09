@@ -1,0 +1,35 @@
+# Factoría de plugins y mods de Claude Code: skills, hooks (módulo TypeScript o comandos de hooks.json),
+# servidores MCP, comandos, agentes, statusline y marketplaces.
+nombre = "plugin-claude"
+descripcion = "Plugins y mods de Claude Code (skills, hooks, MCP, comandos, agentes, statusline) y sus marketplaces"
+provisional = false
+# Menor que rust (8): en un plugin hecho en Rust produce la de Rust y aquí solo se pasan los tests.
+prioridad = 6
+
+tests = ["plugin-claude", "cyber"]
+encadena_con = []
+# Dos a la vez como mucho: los tests lanzan sesiones `claude -p` y comparten el límite de uso de {humano}.
+cupo = 2
+
+# Tests que se añaden según el repo (globs sobre `git ls-files`): un marketplace que lleva un MCP en Rust
+# dentro (plugins/<x>/Cargo.toml) pasa también por la cadena de test de Rust.
+tests_si = { rust = ["*Cargo.toml"], python = ["*pyproject.toml", "*requirements*.txt"] }
+
+[huella]
+# El manifiesto del plugin o del marketplace, en la raíz o en una subcarpeta (plugins/<nombre>/...).
+todos = []
+alguno = ["*.claude-plugin/plugin.json", "*.claude-plugin/marketplace.json"]
+nunca = []
+
+# Despliegue por defecto si el proyecto no tiene receta propia en las recetas de esta instalación.
+# Publicar es hacer push: quien tiene el marketplace añadido desde GitHub recibe lo que haya en main.
+# La versión la sube la factoría en la misma rama (ver oficio): plugin.json y su entrada de
+# marketplace.json juntas, porque subir_version de Kumi solo sabe tocar un fichero.
+[publicar]
+merge = true
+push = true
+pasos = []
+# Instala desde el marketplace remoto en una configuración temporal y comprueba versión y manifiesto.
+# Con --sesion abre además una sesión `claude -p` (solo si hay CLAUDE_CODE_OAUTH_TOKEN o ANTHROPIC_API_KEY).
+# Un repo sin marketplace propio (lo publica otro repo marketplace) necesita receta con `--marketplace <dueño>/<repo>`.
+prod_tests = ['uv run --no-project python {kumi}/tests/plugin-claude/prod_test.py . --sesion']

@@ -1,0 +1,37 @@
+# Riesgo propio de los plugins de Claude Code. Nivel 2 = {humano} aprueba antes de publicar.
+# Un plugin roto no rompe un proyecto: rompe todas las sesiones de quien lo tenga instalado, empezando por {humano}.
+
+[nivel0]
+rutas = ["*evals/*/prompt.md", "*evals/*/graders/*", "*evals/mocks/*", "*.claude-plugin/types/*"]
+
+[nivel1]
+# Texto que cambia lo que hace Claude: nunca nivel 0, aunque sea Markdown.
+rutas = ["*SKILL.md", "*/agents/*.md", "*/commands/*.md", "*/output-styles/*.md", "*CLAUDE.md"]
+
+[nivel2]
+rutas = [
+  "*.claude-plugin/marketplace.json",   # lo que reciben los usuarios al actualizar
+  "*hooks.json",                        # qué hooks o módulos se cargan en cada sesión
+  "*.mcp.json", "*.lsp.json",           # procesos que arrancan con cada sesión
+  "*settings.json", "*settings.local.json",
+  "*install.ps1", "*install.sh",        # lo que ejecuta quien instala a mano
+  "*/bin/*",                            # ejecutables que el plugin pone en el PATH de la sesión
+]
+contenido = [
+  # Hooks que corren en cada mensaje, en cada herramienta, al pintar o al arrancar (módulo TypeScript).
+  '''on\(\s*['"](tool\.call|tool\.check|prompt\.(submit|compose|change|edit|mention)|turn\.\w+|session\.(start|append|measure)|ui\.render|engine\.create|plugin\.register|config\.set|process\.spawn|telemetry\.[\w*]+)['"]''',
+  '''classic\.(UserPromptSubmit|PreToolUse|PostToolUse|SessionStart|Stop|SubagentStop|PreCompact|Notification|PermissionRequest)''',
+  # Los mismos en hooks clásicos (hooks.json o settings).
+  '''"(UserPromptSubmit|PreToolUse|PostToolUse|SessionStart|Stop|SubagentStop|PreCompact|Notification|PermissionRequest)"\s*:''',
+  '(?i)"?statusLine"?\s*[:=]',
+  # Permisos: herramientas concedidas sin preguntar.
+  '(?im)^\s*allowed-?tools\s*:', '(?i)permissionMode', 'bypassPermissions', 'dangerously-skip-permissions',
+  '"(allow|deny|ask)"\s*:\s*\[', '(?i)allowedTools',
+  # Escribir en la configuración del usuario.
+  '''\.claude[/\\]+(settings|\.credentials|plugins|skills|agents|commands|CLAUDE\.md)''', '\.claude\.json',
+  '''['"]\.claude['"]''',               # la carpeta montada por partes: join(home, '.claude', ...)
+  'CLAUDE_CONFIG_DIR', 'enabledPlugins', 'extraKnownMarketplaces', '\$\.settings\.(set|update|write|delete)',
+  # Servidores MCP nuevos o distintos, dependencias y binarios que se bajan al instalar.
+  '"mcpServers"', '"dependencies"\s*:', '"userConfig"', 'releases/download', 'SHA256SUMS',
+  '''\$\.process\.(run|spawn)\(\s*\[\s*['"](uv|uvx|python3?|pip|npx?|node|bun|deno)['"]''',
+]
