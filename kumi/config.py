@@ -87,6 +87,13 @@ class Config:
     min_disco_gb: float = 15.0         # libres donde están las obras
     min_sistema_gb: float = 8.0        # libres en el disco del sistema (temporales, configuración de los agentes)
     min_ram_gb: float = 6.0
+    # Trazas OTLP: a dónde mandarlas (URL base de un receptor OTLP/HTTP; vacío = no se mandan, pero cada
+    # agente recibe igual su TRACEPARENT), cabeceras (p. ej. un token, admite $VARIABLES), si se incluye el
+    # texto de los prompts y de las herramientas, y el nombre del servicio.
+    trazas_endpoint: str = ""
+    trazas_cabeceras: dict = field(default_factory=dict)
+    trazas_contenido: bool = False
+    trazas_servicio: str = "kumi"
     fichero: Path | None = None
 
     def elecciones(self, papel: str, nombre: str | None = None, perfil: dict | None = None) -> list[dict]:
@@ -147,6 +154,11 @@ def cargar(fichero: Path | None = None) -> Config:
     c.min_sistema_gb = float(rc.get("min_sistema_gb", c.min_sistema_gb))
     c.min_ram_gb = float(rc.get("min_ram_gb", c.min_ram_gb))
     c.memoria = d.get("memoria", {}).get("motor", c.memoria)
+    tz = d.get("trazas", {})
+    c.trazas_endpoint = os.path.expandvars(str(tz.get("endpoint", c.trazas_endpoint)))
+    c.trazas_cabeceras = dict(tz.get("cabeceras", {}))
+    c.trazas_contenido = bool(tz.get("contenido", c.trazas_contenido))
+    c.trazas_servicio = str(tz.get("servicio", c.trazas_servicio))
     for k, v in d.get("papeles", {}).items():
         c.papeles[k] = _lista(v)
     c.por_nombre = {k: _lista(v) for k, v in d.get("papeles_por_nombre", {}).items()}

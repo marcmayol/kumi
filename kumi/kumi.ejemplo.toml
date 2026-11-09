@@ -34,6 +34,13 @@ min_ram_gb = 6                     # RAM libre (cada agente usa 1-2 GB y puede c
 [memoria]
 motor = "omoikane"                 # o "ninguna": sin perfiles por proyecto ni cola de decisiones
 
+[trazas]                           # cada tarea es una traza OpenTelemetry: tarea → pasos → lo que hace cada agente
+# Sin endpoint no se manda nada, pero cada agente recibe su TRACEPARENT y la tarea guarda su trace_id.
+# endpoint = "http://localhost:4318"         # receptor OTLP/HTTP: Collector, Jaeger, Phoenix, Tempo…
+# cabeceras = { authorization = "Bearer $KUMI_OTLP_TOKEN" }
+# contenido = false                # true = manda también prompts y detalles de herramientas (ojo con secretos)
+# servicio = "kumi"                # service.name; cambia por instancia si tienes varias
+
 [versiones]
 minor_sin_cero = false             # true: 2.21 → 2.22 en vez de 2.22.0
 

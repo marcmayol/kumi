@@ -98,6 +98,20 @@ por_dia_usd = 60       # todos los agentes en un día
 
 Si se pasa un tope, la tarea se para y te avisa. Para seguir, sube el tope y ejecuta `kumi reanudar <id>`. Solo cuenta lo que declara el motor: Claude Code da el coste de cada sesión, pero otros motores no siempre lo dan.
 
+## Trazas
+
+Cada tarea es una traza de OpenTelemetry: un span por la tarea, uno por cada paso (factoría, test, revisor…) y, debajo, lo que hace el agente de ese paso. Kumi le pasa a cada agente `TRACEPARENT`, el estándar W3C Trace Context. Claude Code lo lee en `-p` y cuelga ahí sus llamadas al modelo (con tokens, caché y reintentos), sus herramientas y sus subagentes. Las tareas que nacen de otra (vueltas del supervisor, rechazos, fallos en producción) siguen en la traza de su madre.
+
+```toml
+[trazas]
+endpoint = "https://otel.midominio.com"              # receptor OTLP/HTTP: Collector, Jaeger, Phoenix, Tempo…
+cabeceras = { authorization = "Bearer $KUMI_OTLP_TOKEN" }
+contenido = false                                    # true = también prompts y detalles de herramientas
+servicio = "kumi"                                    # service.name; cambia por instancia si tienes varias
+```
+
+Sin `endpoint` no se manda nada, pero cada agente recibe su `TRACEPARENT` y la tarea guarda su `trace_id` (`kumi ver <id>`). Con `endpoint`, Kumi manda sus spans por OTLP/HTTP, sin dependencias, y activa la telemetría de Claude Code hacia el mismo sitio con los atributos `kumi.tarea`, `kumi.paso`, `kumi.papel` y `kumi.nombre`. Si el receptor no contesta, avisa una vez y sigue: una traza nunca para una tarea. Omoikane (1.9 o más) apunta en cada memoria el `trace_id` y el `span_id` del paso que la escribió.
+
 ## Canales
 
 Por dónde entra el trabajo y por dónde habla Kumi: avisos, preguntas y aprobación de PR humanas.

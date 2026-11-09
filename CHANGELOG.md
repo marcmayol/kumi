@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 (2026-11-09)
+
+- Traces: each task is an OpenTelemetry trace (task → steps → what each agent does). Every agent gets `TRACEPARENT`; Claude Code hangs its model calls, tools and subagents under the step that launched it. Child tasks stay in their parent's trace. With `[trazas] endpoint`, Kumi sends its spans over OTLP/HTTP (no new dependencies) and turns on Claude Code's telemetry towards the same receiver.
+- Turn count fixed: a Claude Code session can emit several `result` events (when background tasks wake it up). The cost is cumulative, but turns are per stretch: they were taken from the last one only (35 instead of 154 in a real Android run). Now they are added up.
+
 ## 0.2.0 (2026-11-09)
 
 - Everything runs in parallel: `kumi recepcion` launches every task and idea that is due, each in its own process, up to `[recursos] max_paralelo`, and returns at once; the next pass knows which ones are still running.

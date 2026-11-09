@@ -98,6 +98,20 @@ por_dia_usd = 60       # every agent, per day
 
 Past a cap, the task stops and notifies you. Raise the cap and run `kumi reanudar <id>` to continue. Only what the engine reports counts: Claude Code reports the cost of each session; other engines do not always.
 
+## Traces
+
+Each task is an OpenTelemetry trace: one span for the task, one per step (factory, test, reviewer…) and, under each step, what its agent does. Kumi passes every agent `TRACEPARENT`, the W3C Trace Context standard. Claude Code reads it in `-p` mode and hangs its model calls (with tokens, cache and retries), its tools and its subagents under that step. Tasks born from another one (supervisor retries, rejections, production failures) stay in their parent's trace.
+
+```toml
+[trazas]
+endpoint = "https://otel.example.com"                # OTLP/HTTP receiver: Collector, Jaeger, Phoenix, Tempo…
+cabeceras = { authorization = "Bearer $KUMI_OTLP_TOKEN" }
+contenido = false                                    # true = also prompts and tool details
+servicio = "kumi"                                    # service.name; use one per instance if you run several
+```
+
+Without `endpoint` nothing is sent, but every agent still gets its `TRACEPARENT` and the task keeps its `trace_id` (`kumi ver <id>`). With `endpoint`, Kumi sends its spans over OTLP/HTTP with no extra dependencies, and points Claude Code's telemetry at the same place, tagged with `kumi.tarea`, `kumi.paso`, `kumi.papel` and `kumi.nombre`. If the receiver doesn't answer, Kumi warns once and carries on: a trace never stops a task. Omoikane (1.9 or later) records in each memory the `trace_id` and `span_id` of the step that wrote it.
+
 ## Channels
 
 Where work comes in and where Kumi talks: notices, questions and human PR approvals.

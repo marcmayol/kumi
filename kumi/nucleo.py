@@ -40,6 +40,7 @@ from . import canales  # noqa: E402
 from . import motores  # noqa: E402
 from . import registro  # noqa: E402
 from . import riesgo  # noqa: E402
+from . import traza  # noqa: E402
 from .config import CFG, catalogo, catalogo_glob, humanizar_texto, nota_local, recetas_dir  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent          # catálogo de serie (viaja con el paquete)
@@ -826,7 +827,9 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
         carpeta = TAREAS / t["id"] / paso
         carpeta.mkdir(parents=True)
     prompt = humanizar_texto(receta) + "\n" + contexto(t, papel, nombre, carpeta, extra + brain_para(t, papel, nombre))
-    env = {**os.environ, "OMOIKANE_AUTHOR": f"kumi-{papel}-{nombre}", "KUMI_TAREA": t["id"], "PYTHONIOENCODING": "utf-8"}
+    span = traza.nuevo_span()
+    env = {**os.environ, "OMOIKANE_AUTHOR": f"kumi-{papel}-{nombre}", "KUMI_TAREA": t["id"], "PYTHONIOENCODING": "utf-8",
+           **traza.entorno(t, span, papel, nombre, paso)}
     perfil = perfil_leer(Path(t["raiz"])) if t.get("raiz") else None
     elecciones = CFG.elecciones(papel, nombre, perfil)
     # Si en esta cadena (vueltas del supervisor, cambios pedidos) ya acertó un motor, se empieza por él y no por
@@ -837,6 +840,7 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
         elecciones = [e for e in elecciones if igual(e)] + [e for e in elecciones if not igual(e)]
     elecciones = elecciones[desde:]
     inicio = ahora()
+    inicio_ns = time.time_ns()
     ej = motores.ejecutar(elecciones, prompt, t.get("obra") or t["raiz"], env, carpeta, list(necesita))
     if ej.error:
         log(t, f"{papel} {nombre}: {ej.error}")
@@ -865,10 +869,12 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
                                       "fin": ahora(), "codigo": ej.codigo, "usd": ej.usd, "turnos": ej.turnos,
                                       "motor": ej.eleccion.get("motor"), "modelo": ej.eleccion.get("modelo"),
                                       "familia": motores.familia(ej.eleccion),
-                                      "estado": res.get("estado"), "resumen": res.get("resumen", "")})
+                                      "estado": res.get("estado"), "resumen": res.get("resumen", ""),
+                                      "span": span})
     t["usd"] = round(sum(p.get("usd") or 0 for p in t["pasos"]), 2)
     sumar_gasto(ej.usd)
     CANDADO.release()
+    traza.paso(t, span, papel, nombre, paso, inicio_ns, ej.eleccion, ej.codigo, ej.usd, ej.turnos, res, ej.error)
     log(t, f"{papel} {nombre} [{motores.describir(ej.eleccion)}]: {res.get('estado')} · {res.get('resumen', '')}")
     return res
 
@@ -995,6 +1001,7 @@ def nueva_tarea(proyecto: Path, texto: str, origen: str = "directa", padre: dict
          # Por qué esta tarea pasa siempre por el humano (se hereda en su cadena: supervisor, rechazos…).
          "siempre_humano": ("nace de un fallo en producción" if origen == "produccion"
                             else (padre.get("siempre_humano") if padre else False))}
+    t["traza"] = traza.nueva(traza.de_tarea(padre) if padre else None)
     if misma_obra and padre:
         t.update(obra=padre["obra"], rama=padre["rama"], base=padre["base"])
     if padre and padre.get("motores_buenos"):
@@ -1007,6 +1014,14 @@ def nueva_tarea(proyecto: Path, texto: str, origen: str = "directa", padre: dict
 
 
 def recorrer(t: dict) -> dict:
+    """Lleva la tarea tan lejos como pueda; al soltarla (acabe, espere a una persona o se pare) manda su span."""
+    try:
+        return _recorrer(t)
+    finally:
+        traza.cerrar_tarea(t)
+
+
+def _recorrer(t: dict) -> dict:
     reg = registro.construir()
     if t.get("modo") == "asdd":
         t["modo"] = "spec"

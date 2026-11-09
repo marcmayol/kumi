@@ -151,7 +151,10 @@ def _orden_agente(m: dict, e: dict, instrucciones: Path, salida_final: Path,
 
 
 def coste(salida: Path) -> tuple[float | None, int | None]:
-    """Coste y turnos si el motor los da (Claude Code: total_cost_usd; OpenCode: cost por paso)."""
+    """Coste y turnos si el motor los da (Claude Code: total_cost_usd; OpenCode: cost por paso).
+
+    Una sesión de Claude Code puede dar varios `result` (cuando sus tareas en segundo plano la despiertan):
+    el coste viene acumulado, así que vale el último; los turnos son de cada tramo, así que se suman."""
     usd, turnos, suma = None, None, 0.0
     try:
         for linea in salida.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -162,7 +165,9 @@ def coste(salida: Path) -> tuple[float | None, int | None]:
             except json.JSONDecodeError:
                 continue
             if ev.get("type") == "result" and "total_cost_usd" in ev:
-                usd, turnos = ev.get("total_cost_usd"), ev.get("num_turns")
+                usd = ev.get("total_cost_usd")
+                if isinstance(ev.get("num_turns"), int):
+                    turnos = (turnos or 0) + ev["num_turns"]
             elif isinstance(ev.get("part"), dict) and isinstance(ev["part"].get("cost"), (int, float)):
                 suma += ev["part"]["cost"]
     except FileNotFoundError:
