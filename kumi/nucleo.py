@@ -841,7 +841,8 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
     elecciones = elecciones[desde:]
     inicio = ahora()
     inicio_ns = time.time_ns()
-    ej = motores.ejecutar(elecciones, prompt, t.get("obra") or t["raiz"], env, carpeta, list(necesita))
+    tope = CFG.tope_agente_min * 60 or None
+    ej = motores.ejecutar(elecciones, prompt, t.get("obra") or t["raiz"], env, carpeta, list(necesita), tope)
     if ej.error:
         log(t, f"{papel} {nombre}: {ej.error}")
     res, problemas = motores.leer_resultado(carpeta / "resultado.json")
@@ -854,7 +855,7 @@ def lanzar_agente(t: dict, papel: str, nombre: str, receta: str, extra: str = ""
                      f"final de `{carpeta / 'instrucciones.md'}`.")
         sub = carpeta / "correccion"
         sub.mkdir(exist_ok=True)
-        motores.ejecutar([ej.eleccion], arreglo, t.get("obra") or t["raiz"], env, sub, [])
+        motores.ejecutar([ej.eleccion], arreglo, t.get("obra") or t["raiz"], env, sub, [], tope)
         res2, problemas2 = motores.leer_resultado(carpeta / "resultado.json")
         res = res2 or res
         if problemas2:

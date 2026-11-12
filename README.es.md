@@ -21,7 +21,7 @@ min_sistema_gb = 8     # libres en el disco del sistema
 min_ram_gb = 6
 ```
 
-> **Estado: alfa (0.2).** Se usa a diario en una instalación con Windows, Claude Code y Android, webs, Rust y Python. Linux y macOS deberían funcionar, pero aún no están probados. Los textos de los agentes (oficios, modos) están en español.
+> **Estado: alfa (0.3).** Se usa a diario en una instalación con Windows, Claude Code y Android, webs, Rust y Python. Linux y macOS deberían funcionar, pero aún no están probados. Los textos de los agentes (oficios, modos) están en español.
 
 ## Instalar
 

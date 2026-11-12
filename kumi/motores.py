@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -177,6 +178,50 @@ def coste(salida: Path) -> tuple[float | None, int | None]:
     return usd, turnos
 
 
+TOPE = -9   # código de salida de un agente parado por pasar el tope de tiempo
+
+
+def _matar_arbol(proc: subprocess.Popen) -> None:
+    """Mata el proceso y todo lo que lanzó (compilaciones, emuladores, subagentes), no solo el de arriba."""
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
+        else:
+            os.killpg(proc.pid, 9)
+    except (OSError, ProcessLookupError):
+        pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+
+
+def _lanzar(orden, entrada: str | None, cwd: str, env: dict, salida, timeout: int | None) -> int:
+    """Lanza el agente con su salida al fichero; si pasa de `timeout` segundos, lo mata con su árbol y da TOPE."""
+    proc = subprocess.Popen(orden, stdin=subprocess.PIPE if entrada is not None else subprocess.DEVNULL,
+                            stdout=salida, stderr=subprocess.STDOUT, cwd=cwd, env=env, text=True,
+                            encoding="utf-8", errors="replace", shell=isinstance(orden, str),
+                            start_new_session=os.name != "nt")
+    if entrada is not None:
+        def escribir():
+            # En un hilo: si el agente se cuelga sin leer, el tope tiene que seguir contando.
+            try:
+                proc.stdin.write(entrada)
+                proc.stdin.close()
+            except (OSError, ValueError):     # el agente se fue antes de leer las instrucciones
+                pass
+        threading.Thread(target=escribir, daemon=True).start()
+    try:
+        return proc.wait(timeout=timeout or None)
+    except subprocess.TimeoutExpired:
+        _matar_arbol(proc)
+        try:
+            proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+        return TOPE
+
+
 def ejecutar(elecciones: list[dict], prompt: str, cwd: str, env: dict, carpeta: Path,
              necesita: list[str] = (), timeout: int | None = None) -> Ejecucion:
     """Lanza el papel con la primera elección que pueda hacerlo; si se cae sin dejar resultado, la siguiente."""
@@ -202,14 +247,10 @@ def ejecutar(elecciones: list[dict], prompt: str, cwd: str, env: dict, carpeta: 
         with open(salida, "a", encoding="utf-8") as s:
             s.write(json.dumps({"kumi": "motor", "motor": e["motor"], "modelo": e.get("modelo")}) + "\n")
             s.flush()
-            try:
-                r = subprocess.run(orden, input=entrada, cwd=cwd, env={**env, **entorno(m)}, stdout=s,
-                                   stderr=subprocess.STDOUT,
-                                   text=True, encoding="utf-8", errors="replace", shell=isinstance(orden, str),
-                                   timeout=timeout)
-                codigo = r.returncode
-            except subprocess.TimeoutExpired:
-                codigo = -9
+            codigo = _lanzar(orden, entrada, cwd, {**env, **entorno(m)}, s, timeout)
+            if codigo == TOPE:
+                s.write(json.dumps({"kumi": "tope", "segundos": timeout}) + "\n")
+                descartes.append(f"{describir(e)}: pasó el tope de {timeout // 60} min y se paró")
         usd, turnos = coste(salida)
         ultima = Ejecucion(codigo, e, usd, turnos)
         res_f = carpeta / "resultado.json"

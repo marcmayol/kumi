@@ -30,6 +30,7 @@ max_paralelo = 4                   # tareas de la recepción a la vez (cada una 
 min_disco_gb = 15                  # libres donde están las obras; si no, el agente espera
 min_sistema_gb = 8                 # libres en el disco del sistema
 min_ram_gb = 6                     # RAM libre (cada agente usa 1-2 GB y puede compilar)
+tope_agente_min = 240              # minutos que puede durar un agente; luego se mata con lo que lanzó (0 = sin tope)
 
 [memoria]
 motor = "omoikane"                 # o "ninguna": sin perfiles por proyecto ni cola de decisiones

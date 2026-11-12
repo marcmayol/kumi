@@ -21,7 +21,7 @@ min_sistema_gb = 8     # free on the system disk
 min_ram_gb = 6
 ```
 
-> **Status: alpha (0.2).** In daily use on one setup: Windows, Claude Code, Android apps, websites, Rust and Python. Linux and macOS should work but are not tested yet. The agent instructions (trades, modes) and the CLI messages are in Spanish for now.
+> **Status: alpha (0.3).** In daily use on one setup: Windows, Claude Code, Android apps, websites, Rust and Python. Linux and macOS should work but are not tested yet. The agent instructions (trades, modes) and the CLI messages are in Spanish for now.
 
 ## Install
 

@@ -87,6 +87,9 @@ class Config:
     min_disco_gb: float = 15.0         # libres donde están las obras
     min_sistema_gb: float = 8.0        # libres en el disco del sistema (temporales, configuración de los agentes)
     min_ram_gb: float = 6.0
+    # Tope de cada agente, en minutos (0 = sin tope). Al pasarlo se mata el agente con todo lo que lanzó y el
+    # paso cuenta como fallido. Largo a propósito: la ejecución más larga vista (una factoría) duró 57 min.
+    tope_agente_min: int = 240
     # Trazas OTLP: a dónde mandarlas (URL base de un receptor OTLP/HTTP; vacío = no se mandan, pero cada
     # agente recibe igual su TRACEPARENT), cabeceras (p. ej. un token, admite $VARIABLES), si se incluye el
     # texto de los prompts y de las herramientas, y el nombre del servicio.
@@ -153,6 +156,7 @@ def cargar(fichero: Path | None = None) -> Config:
     c.min_disco_gb = float(rc.get("min_disco_gb", c.min_disco_gb))
     c.min_sistema_gb = float(rc.get("min_sistema_gb", c.min_sistema_gb))
     c.min_ram_gb = float(rc.get("min_ram_gb", c.min_ram_gb))
+    c.tope_agente_min = int(rc.get("tope_agente_min", c.tope_agente_min))
     c.memoria = d.get("memoria", {}).get("motor", c.memoria)
     tz = d.get("trazas", {})
     c.trazas_endpoint = os.path.expandvars(str(tz.get("endpoint", c.trazas_endpoint)))
